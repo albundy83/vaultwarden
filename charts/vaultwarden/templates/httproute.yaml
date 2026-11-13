@@ -1,6 +1,7 @@
 {{- define "vaultwarden.httpRoute.rules" -}}
 {{- $route := .route -}}
 {{- $fullName := .fullName -}}
+{{- $servicePort := .servicePort -}}
 {{- if $route.rules -}}
 {{ toYaml $route.rules }}
 {{- else if $route.httpsRedirect -}}
@@ -20,11 +21,12 @@
         value: {{ default "/" $route.path | quote }}
   backendRefs:
     - name: {{ $fullName }}
-      port: 80
+      port: {{ $servicePort }}
 {{- end -}}
 {{- end -}}
 {{- $root := . -}}
 {{- $httpRoute := .Values.httpRoute -}}
+{{- $servicePort := ternary 443 80 (not (empty .Values.rocket.tls.secretName)) -}}
 {{- if and $httpRoute (kindIs "map" $httpRoute) -}}
 {{- if hasKey $httpRoute "enabled" -}}
 {{- /* Legacy flat shape (v0.37.0) */ -}}
@@ -55,7 +57,7 @@ spec:
     {{- toYaml $httpRoute.hostnames | nindent 4 }}
   {{- end }}
   rules:
-    {{- include "vaultwarden.httpRoute.rules" (dict "route" $httpRoute "fullName" (include "vaultwarden.fullname" $root)) | nindent 4 }}
+    {{- include "vaultwarden.httpRoute.rules" (dict "route" $httpRoute "fullName" (include "vaultwarden.fullname" $root) "servicePort" $servicePort) | nindent 4 }}
 {{- end -}}
 {{- else -}}
 {{- /* Map shape (v0.38.0+) — range over named routes */ -}}
@@ -88,7 +90,7 @@ spec:
     {{- toYaml $route.hostnames | nindent 4 }}
   {{- end }}
   rules:
-    {{- include "vaultwarden.httpRoute.rules" (dict "route" $route "fullName" (include "vaultwarden.fullname" $root)) | nindent 4 }}
+    {{- include "vaultwarden.httpRoute.rules" (dict "route" $route "fullName" (include "vaultwarden.fullname" $root) "servicePort" $servicePort) | nindent 4 }}
 {{- end -}}
 {{- end -}}
 {{- end -}}
